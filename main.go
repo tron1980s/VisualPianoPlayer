@@ -25,6 +25,7 @@ func main() {
 	interKeyGap := flag.Duration("inter-key-gap", defaults.InterKeyGap, "tiny delay between keys inside a chord")
 	hotkeyCode := flag.Int("hotkey-keycode", defaults.HotkeyCode, platformHotkeyHelp())
 	consumeHotkey := flag.Bool("consume-hotkey", defaults.ConsumeHotkey, "prevent the hotkey press from reaching the focused app")
+	keyboardLayout := flag.String("keyboard-layout", string(defaults.KeyboardLayout), "keyboard layout for y/z mapping: german or english")
 	cli := flag.Bool("cli", false, "run the headless command-line hotkey player instead of the GUI")
 	dryRun := flag.Bool("dry-run", false, "parse the MIDI and print what would be played without installing the hotkey")
 	listMap := flag.Bool("list-map", false, "print the built-in Roblox 88-key MIDI map")
@@ -51,9 +52,10 @@ func main() {
 		InterKeyGap:    *interKeyGap,
 		HotkeyCode:     *hotkeyCode,
 		ConsumeHotkey:  *consumeHotkey,
+		KeyboardLayout: NormalizeKeyboardLayout(strings.ToLower(strings.TrimSpace(*keyboardLayout))),
 	}
 
-	keyMap, err := Roblox88KeyMap()
+	keyMap, err := Roblox88KeyMap(cfg.KeyboardLayout)
 	if err != nil {
 		exitf("building Roblox key map: %v", err)
 	}
@@ -68,7 +70,7 @@ func main() {
 		return
 	}
 
-	RunGUI(cfg, keyMap)
+	RunGUI(cfg)
 }
 
 func runCLI(cfg AppConfig, keyMap map[int]KeyStroke, dryRun bool) {

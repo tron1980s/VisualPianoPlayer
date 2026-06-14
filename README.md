@@ -26,6 +26,8 @@ On macOS, the app needs Accessibility/Input Monitoring permission because it lis
 
 On Windows, the app uses a low-level keyboard hook for global hotkeys and scan-code `SendInput` for playback. If the `ö` hotkey does not toggle playback, open Advanced, click Detect beside Start/Stop Keycode, then press the key you want to use.
 
+If `Y` and `Z` are swapped, open Advanced and set Keyboard Layout to German or English. The choice is saved to `settings.json` and is restored on the next launch.
+
 ## Useful Flags
 
 ```sh
@@ -36,6 +38,7 @@ go run . -speed 0.8
 go run . -mode tap
 go run . -disable-sustain
 go run . -auto-sustain 900ms
+go run . -keyboard-layout german
 ```
 
 `hold` mode is the default because it follows MIDI note-off timing and sounds closer to the original. MIDI sustain pedal events (`CC64`) are simulated by holding notes until the pedal lifts. If a MIDI has no pedal data and sounds dry, use `-auto-sustain 700ms` to `-auto-sustain 1400ms` as a fake pedal tail. Use `tap` mode if Roblox misses held notes or a note gets stuck.

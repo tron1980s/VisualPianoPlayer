@@ -10,6 +10,7 @@ const settingsFileName = "settings.json"
 
 type UserSettings struct {
 	StartStopHotkeyCode int       `json:"start_stop_hotkey_code,omitempty"`
+	KeyboardLayout      string    `json:"keyboard_layout,omitempty"`
 	EnableSlotHotkeys   bool      `json:"enable_slot_hotkeys"`
 	ConsumeSlotHotkeys  bool      `json:"consume_slot_hotkeys"`
 	SlotPaths           [9]string `json:"slot_paths"`
@@ -19,6 +20,7 @@ func DefaultUserSettings() UserSettings {
 	return UserSettings{
 		EnableSlotHotkeys:  true,
 		ConsumeSlotHotkeys: true,
+		KeyboardLayout:     string(LayoutGerman),
 	}
 }
 
@@ -31,6 +33,7 @@ func LoadUserSettings() UserSettings {
 	if err := json.Unmarshal(data, &settings); err != nil {
 		return DefaultUserSettings()
 	}
+	settings.KeyboardLayout = string(NormalizeKeyboardLayout(settings.KeyboardLayout))
 	return settings
 }
 

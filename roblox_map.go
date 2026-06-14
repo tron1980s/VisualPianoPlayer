@@ -33,7 +33,8 @@ var shiftedUSLabels = map[rune]rune{
 	')': '0',
 }
 
-func Roblox88KeyMap() (map[int]KeyStroke, error) {
+func Roblox88KeyMap(layout KeyboardLayout) (map[int]KeyStroke, error) {
+	layout = NormalizeKeyboardLayout(string(layout))
 	whiteLabels := strings.Fields("1 3 4 6 8 9 q e t 1 2 3 4 5 6 7 8 9 0 q w e r t y u i o p a s d f g h j k l z x c v b n m u o p s f h j")
 	blackLabels := strings.Fields("2 5 7 0 w r ! @ $ % ^ * ( Q W E T Y I O P S D G H J L Z C V B y i a d g")
 	swapLabels(whiteLabels, "y", "2")
@@ -59,7 +60,7 @@ func Roblox88KeyMap() (map[int]KeyStroke, error) {
 			blackIndex++
 		}
 
-		stroke, err := strokeFromRobloxLabel(label)
+		stroke, err := strokeFromRobloxLabel(label, layout)
 		if err != nil {
 			return nil, fmt.Errorf("MIDI note %d label %q: %w", note, label, err)
 		}
@@ -91,7 +92,7 @@ func isWhiteNote(midiNote int) bool {
 	return whiteNoteClasses[midiNote%12]
 }
 
-func strokeFromRobloxLabel(label string) (KeyStroke, error) {
+func strokeFromRobloxLabel(label string, layout KeyboardLayout) (KeyStroke, error) {
 	runes := []rune(label)
 	if len(runes) != 1 {
 		return KeyStroke{}, fmt.Errorf("expected one-character label")
@@ -108,6 +109,7 @@ func strokeFromRobloxLabel(label string) (KeyStroke, error) {
 		shift = true
 		base = shiftedBase
 	}
+	base = baseForKeyboardLayout(base, layout)
 
 	keyCode, ok := platformKeyCodeForBase(base)
 	if !ok {
@@ -119,6 +121,20 @@ func strokeFromRobloxLabel(label string) (KeyStroke, error) {
 		KeyCode: keyCode,
 		Shift:   shift,
 	}, nil
+}
+
+func baseForKeyboardLayout(base rune, layout KeyboardLayout) rune {
+	if NormalizeKeyboardLayout(string(layout)) != LayoutGerman {
+		return base
+	}
+	switch base {
+	case 'y':
+		return 'z'
+	case 'z':
+		return 'y'
+	default:
+		return base
+	}
 }
 
 func platformDigitHotkeyCodes() [9]int {

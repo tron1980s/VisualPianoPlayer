@@ -29,7 +29,7 @@ type guiHotkeyEvent struct {
 
 const emptySongLabel = "(empty)"
 
-func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
+func RunGUI(initial AppConfig) {
 	guiApp := app.NewWithID("dev.codex.roblox-midi-piano")
 	window := guiApp.NewWindow("Roblox MIDI Piano")
 	window.Resize(fyne.NewSize(820, 680))
@@ -39,9 +39,11 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 	if settings.StartStopHotkeyCode > 0 {
 		initial.HotkeyCode = settings.StartStopHotkeyCode
 	}
+	initial.KeyboardLayout = NormalizeKeyboardLayout(settings.KeyboardLayout)
 	if !settingsFileExists && !settings.HasSlotPaths() {
 		settings = FillEmptySlotsFromSongs(settings, initial.MIDIPath)
 		settings.StartStopHotkeyCode = initial.HotkeyCode
+		settings.KeyboardLayout = string(initial.KeyboardLayout)
 		_ = SaveUserSettings(settings)
 	}
 	state := &guiRuntime{cfg: initial}
@@ -119,6 +121,9 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 	hotkeyEntry.SetText(strconv.Itoa(initial.HotkeyCode))
 	hotkeyEntry.SetPlaceHolder(platformHotkeyHelp())
 
+	layoutSelect := widget.NewSelect(keyboardLayoutLabels(), nil)
+	layoutSelect.SetSelected(keyboardLayoutLabel(initial.KeyboardLayout))
+
 	var browseButton *widget.Button
 	var loadButton *widget.Button
 	var quickButton *widget.Button
@@ -147,6 +152,7 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 		cfg.TapDuration = time.Duration(tapDurationSlider.Value) * time.Millisecond
 		cfg.InterKeyGap = time.Duration(interKeyGapSlider.Value) * time.Millisecond
 		cfg.ConsumeHotkey = consumeHotkeyCheck.Checked
+		cfg.KeyboardLayout = keyboardLayoutFromLabel(layoutSelect.Selected)
 
 		if cfg.Mode != ModeHold && cfg.Mode != ModeTap {
 			return cfg, fmt.Errorf("choose hold or tap mode")
@@ -246,6 +252,15 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 			return false
 		}
 
+		keyMap, err := Roblox88KeyMap(cfg.KeyboardLayout)
+		if err != nil {
+			if showErrors {
+				dialog.ShowError(err, window)
+			}
+			statusLabel.SetText("Map failed")
+			return false
+		}
+
 		song, err := LoadSong(cfg.MIDIPath, keyMap, cfg.SongOptions())
 		if err != nil {
 			if showErrors {
@@ -265,6 +280,10 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 
 		if cfg.HotkeyCode > 0 && settings.StartStopHotkeyCode != cfg.HotkeyCode {
 			settings.StartStopHotkeyCode = cfg.HotkeyCode
+			_ = SaveUserSettings(settings)
+		}
+		if settings.KeyboardLayout != string(cfg.KeyboardLayout) {
+			settings.KeyboardLayout = string(cfg.KeyboardLayout)
 			_ = SaveUserSettings(settings)
 		}
 
@@ -405,6 +424,13 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 			})
 		})
 	})
+
+	layoutSelect.OnChanged = func(_ string) {
+		settings.KeyboardLayout = string(keyboardLayoutFromLabel(layoutSelect.Selected))
+		_ = SaveUserSettings(settings)
+		statusLabel.SetText("Keyboard layout saved")
+		loadSong(false)
+	}
 
 	startOrStop := func() {
 		state.mu.Lock()
@@ -605,8 +631,16 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 
 	closed := make(chan struct{})
 	var closeOnce sync.Once
+	persistAdvancedSettings := func() {
+		settings.KeyboardLayout = string(keyboardLayoutFromLabel(layoutSelect.Selected))
+		if keyCode, err := parseKeyCode(strings.TrimSpace(hotkeyEntry.Text)); err == nil {
+			settings.StartStopHotkeyCode = keyCode
+		}
+		_ = SaveUserSettings(settings)
+	}
 	stopAll := func() {
 		closeOnce.Do(func() {
+			persistAdvancedSettings()
 			state.mu.Lock()
 			player := state.player
 			state.mu.Unlock()
@@ -670,6 +704,7 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 	advancedForm := widget.NewForm(
 		widget.NewFormItem("Tap Duration", container.NewBorder(nil, nil, nil, tapDurationLabel, tapDurationSlider)),
 		widget.NewFormItem("Inter-Key Gap", container.NewBorder(nil, nil, nil, interKeyGapLabel, interKeyGapSlider)),
+		widget.NewFormItem("Keyboard Layout", layoutSelect),
 		widget.NewFormItem("Start/Stop Keycode", container.NewBorder(nil, nil, nil, detectHotkeyButton, hotkeyEntry)),
 		widget.NewFormItem("", disableSustainCheck),
 		widget.NewFormItem("", consumeHotkeyCheck),
@@ -731,4 +766,29 @@ func parseKeyCode(value string) (int, error) {
 		return 0, fmt.Errorf("keycode must be greater than zero")
 	}
 	return int(keyCode), nil
+}
+
+func keyboardLayoutLabels() []string {
+	return []string{
+		keyboardLayoutLabel(LayoutGerman),
+		keyboardLayoutLabel(LayoutEnglish),
+	}
+}
+
+func keyboardLayoutLabel(layout KeyboardLayout) string {
+	switch NormalizeKeyboardLayout(string(layout)) {
+	case LayoutEnglish:
+		return "English (QWERTY)"
+	default:
+		return "German (QWERTZ)"
+	}
+}
+
+func keyboardLayoutFromLabel(label string) KeyboardLayout {
+	switch label {
+	case "English (QWERTY)":
+		return LayoutEnglish
+	default:
+		return LayoutGerman
+	}
 }

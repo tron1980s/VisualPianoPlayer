@@ -9,6 +9,24 @@ const (
 	ModeHold PlaybackMode = "hold"
 )
 
+type KeyboardLayout string
+
+const (
+	LayoutGerman  KeyboardLayout = "german"
+	LayoutEnglish KeyboardLayout = "english"
+)
+
+func NormalizeKeyboardLayout(value string) KeyboardLayout {
+	switch KeyboardLayout(value) {
+	case LayoutEnglish:
+		return LayoutEnglish
+	case LayoutGerman:
+		return LayoutGerman
+	default:
+		return LayoutGerman
+	}
+}
+
 type KeyStroke struct {
 	Label   string
 	KeyCode uint16

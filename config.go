@@ -14,18 +14,20 @@ type AppConfig struct {
 	InterKeyGap    time.Duration
 	HotkeyCode     int
 	ConsumeHotkey  bool
+	KeyboardLayout KeyboardLayout
 }
 
 func DefaultConfig() AppConfig {
 	return AppConfig{
-		MIDIPath:      defaultMIDIPath(),
-		Mode:          ModeHold,
-		Speed:         1.2,
-		LeadIn:        750 * time.Millisecond,
-		TapDuration:   22 * time.Millisecond,
-		InterKeyGap:   0,
-		HotkeyCode:    defaultHotkeyKeyCode(),
-		ConsumeHotkey: true,
+		MIDIPath:       defaultMIDIPath(),
+		Mode:           ModeHold,
+		Speed:          1.2,
+		LeadIn:         750 * time.Millisecond,
+		TapDuration:    22 * time.Millisecond,
+		InterKeyGap:    0,
+		HotkeyCode:     defaultHotkeyKeyCode(),
+		ConsumeHotkey:  true,
+		KeyboardLayout: LayoutGerman,
 	}
 }
 

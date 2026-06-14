@@ -23,6 +23,7 @@ var hotkeyState struct {
 	bindings  map[int]HotkeyBinding
 	debounce  time.Duration
 	lastPress map[int]time.Time
+	capture   func(int)
 }
 
 func ConfigureHotkey(cfg HotkeyConfig) {
@@ -55,12 +56,32 @@ func ConfigureHotkeyBindings(bindings []HotkeyBinding, debounce time.Duration) {
 	hotkeyState.mu.Unlock()
 }
 
+func CaptureNextPhysicalKey(callback func(int)) {
+	hotkeyState.mu.Lock()
+	hotkeyState.capture = callback
+	hotkeyState.mu.Unlock()
+}
+
+func CancelKeyCapture() {
+	hotkeyState.mu.Lock()
+	hotkeyState.capture = nil
+	hotkeyState.mu.Unlock()
+}
+
 func handleHotkeyFromPlatform(keyCode int, autorepeat bool) bool {
 	if ignoreSyntheticKeyDown(keyCode) {
 		return false
 	}
 
 	hotkeyState.mu.Lock()
+	if hotkeyState.capture != nil && !autorepeat {
+		callback := hotkeyState.capture
+		hotkeyState.capture = nil
+		hotkeyState.mu.Unlock()
+		callback(keyCode)
+		return true
+	}
+
 	binding, ok := hotkeyState.bindings[keyCode]
 	if !ok {
 		hotkeyState.mu.Unlock()

@@ -115,6 +115,7 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 	var quickButton *widget.Button
 	var settingsButton *widget.Button
 	var startButton *widget.Button
+	var detectHotkeyButton *widget.Button
 	var settingsWindow fyne.Window
 	var refreshSlotButtons func()
 	var refreshSettingsSelects func()
@@ -372,6 +373,21 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 		if refreshSettingsSelects != nil {
 			refreshSettingsSelects()
 		}
+	})
+
+	detectHotkeyButton = widget.NewButton("Detect", func() {
+		detectHotkeyButton.Disable()
+		statusLabel.SetText("Press the start/stop key")
+		CaptureNextPhysicalKey(func(keyCode int) {
+			fyne.Do(func() {
+				hotkeyEntry.SetText(strconv.Itoa(keyCode))
+				detectHotkeyButton.Enable()
+				statusLabel.SetText(fmt.Sprintf("Detected keycode %d", keyCode))
+				if cfg, err := readConfig(); err == nil {
+					configureGlobalHotkeys(cfg)
+				}
+			})
+		})
 	})
 
 	startOrStop := func() {
@@ -638,7 +654,7 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 	advancedForm := widget.NewForm(
 		widget.NewFormItem("Tap Duration", container.NewBorder(nil, nil, nil, tapDurationLabel, tapDurationSlider)),
 		widget.NewFormItem("Inter-Key Gap", container.NewBorder(nil, nil, nil, interKeyGapLabel, interKeyGapSlider)),
-		widget.NewFormItem("Start/Stop Keycode", hotkeyEntry),
+		widget.NewFormItem("Start/Stop Keycode", container.NewBorder(nil, nil, nil, detectHotkeyButton, hotkeyEntry)),
 		widget.NewFormItem("", disableSustainCheck),
 		widget.NewFormItem("", consumeHotkeyCheck),
 	)

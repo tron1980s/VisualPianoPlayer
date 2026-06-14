@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"syscall"
 	"unsafe"
 )
@@ -25,9 +26,11 @@ const (
 
 var (
 	user32                    = syscall.NewLazyDLL("user32.dll")
+	kernel32                  = syscall.NewLazyDLL("kernel32.dll")
 	procCallNextHookEx        = user32.NewProc("CallNextHookEx")
 	procDispatchMessage       = user32.NewProc("DispatchMessageW")
 	procGetMessage            = user32.NewProc("GetMessageW")
+	procGetModuleHandle       = kernel32.NewProc("GetModuleHandleW")
 	procSendInput             = user32.NewProc("SendInput")
 	procSetWindowsHookEx      = user32.NewProc("SetWindowsHookExW")
 	procTranslateMessage      = user32.NewProc("TranslateMessage")
@@ -74,10 +77,13 @@ type windowsMSG struct {
 }
 
 func RunGlobalHotkeyListener() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	hook, _, err := procSetWindowsHookEx.Call(
 		uintptr(whKeyboardLL),
 		windowsKeyboardHookProc,
-		0,
+		currentModuleHandle(),
 		0,
 	)
 	if hook == 0 {
@@ -102,6 +108,11 @@ func RunGlobalHotkeyListener() error {
 			procDispatchMessage.Call(uintptr(unsafe.Pointer(&msg)))
 		}
 	}
+}
+
+func currentModuleHandle() uintptr {
+	module, _, _ := procGetModuleHandle.Call(0)
+	return module
 }
 
 func keyboardHookProc(nCode uintptr, wParam uintptr, lParam uintptr) uintptr {

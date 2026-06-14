@@ -33,6 +33,11 @@ func LoadUserSettings() UserSettings {
 	return settings
 }
 
+func UserSettingsFileExists() bool {
+	_, err := os.Stat(settingsFileName)
+	return err == nil
+}
+
 func SaveUserSettings(settings UserSettings) error {
 	data, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
@@ -40,6 +45,26 @@ func SaveUserSettings(settings UserSettings) error {
 	}
 	data = append(data, '\n')
 	return os.WriteFile(settingsFileName, data, 0644)
+}
+
+func (settings UserSettings) HasSlotPaths() bool {
+	for _, path := range settings.SlotPaths {
+		if path != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func FillEmptySlotsFromSongs(settings UserSettings, extraPaths ...string) UserSettings {
+	choices := DiscoverMIDIFiles(extraPaths...)
+	for index := range settings.SlotPaths {
+		if index >= len(choices) {
+			break
+		}
+		settings.SlotPaths[index] = storeSongPath(choices[index].Path)
+	}
+	return settings
 }
 
 func storeSongPath(path string) string {

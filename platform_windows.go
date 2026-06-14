@@ -26,11 +26,10 @@ const (
 
 var (
 	user32                    = syscall.NewLazyDLL("user32.dll")
-	kernel32                  = syscall.NewLazyDLL("kernel32.dll")
 	procCallNextHookEx        = user32.NewProc("CallNextHookEx")
 	procDispatchMessage       = user32.NewProc("DispatchMessageW")
 	procGetMessage            = user32.NewProc("GetMessageW")
-	procGetModuleHandle       = kernel32.NewProc("GetModuleHandleW")
+	procPeekMessage           = user32.NewProc("PeekMessageW")
 	procSendInput             = user32.NewProc("SendInput")
 	procSetWindowsHookEx      = user32.NewProc("SetWindowsHookExW")
 	procTranslateMessage      = user32.NewProc("TranslateMessage")
@@ -80,10 +79,13 @@ func RunGlobalHotkeyListener() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
+	var msg windowsMSG
+	procPeekMessage.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0, 0)
+
 	hook, _, err := procSetWindowsHookEx.Call(
 		uintptr(whKeyboardLL),
 		windowsKeyboardHookProc,
-		currentModuleHandle(),
+		0,
 		0,
 	)
 	if hook == 0 {
@@ -95,7 +97,6 @@ func RunGlobalHotkeyListener() error {
 		windowsKeyboardHookHandle = 0
 	}()
 
-	var msg windowsMSG
 	for {
 		ret, _, err := procGetMessage.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0)
 		switch int32(ret) {
@@ -108,11 +109,6 @@ func RunGlobalHotkeyListener() error {
 			procDispatchMessage.Call(uintptr(unsafe.Pointer(&msg)))
 		}
 	}
-}
-
-func currentModuleHandle() uintptr {
-	module, _, _ := procGetModuleHandle.Call(0)
-	return module
 }
 
 func keyboardHookProc(nCode uintptr, wParam uintptr, lParam uintptr) uintptr {

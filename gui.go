@@ -35,7 +35,12 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 	window.Resize(fyne.NewSize(820, 680))
 
 	state := &guiRuntime{cfg: initial}
+	settingsFileExists := UserSettingsFileExists()
 	settings := LoadUserSettings()
+	if !settingsFileExists && !settings.HasSlotPaths() {
+		settings = FillEmptySlotsFromSongs(settings, initial.MIDIPath)
+		_ = SaveUserSettings(settings)
+	}
 	hotkeyEvents := make(chan guiHotkeyEvent, 8)
 
 	pathEntry := widget.NewEntry()

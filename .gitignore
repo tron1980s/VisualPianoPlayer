@@ -1,0 +1,15 @@
+.DS_Store
+.gocache/
+
+# Local builds
+roblox-midi-piano
+roblox-midi-piano.exe
+*.exe
+
+# User/runtime state
+settings.json
+
+# Personal MIDI library/imports
+*.mid
+*.midi
+imported-midi/

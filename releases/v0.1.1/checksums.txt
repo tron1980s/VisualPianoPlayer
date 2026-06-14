@@ -1,0 +1,2 @@
+2699cd5d2106caed3a133bbe558824129e2901ff1b31b31d8f901d09339d606d  releases/v0.1.1/VisualPianoPlayer-macos-arm64.zip
+90c2eade225fefd797bebf2f20703e269b65d03d1033655d2c786c8634176adc  releases/v0.1.1/VisualPianoPlayer-windows-amd64.zip

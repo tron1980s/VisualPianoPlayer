@@ -12,7 +12,9 @@ import (
 const (
 	inputKeyboard = 1
 
-	keyeventfKeyup = 0x0002
+	keyeventfExtendedKey = 0x0001
+	keyeventfKeyup       = 0x0002
+	keyeventfScancode    = 0x0008
 
 	whKeyboardLL = 13
 	wmKeydown    = 0x0100
@@ -22,6 +24,9 @@ const (
 
 	vkLShift = 0xA0
 	vkOEM1   = 0xBA
+	vkOEM3   = 0xC0
+
+	mapvkVKToVSC = 0
 )
 
 var (
@@ -29,6 +34,7 @@ var (
 	procCallNextHookEx        = user32.NewProc("CallNextHookEx")
 	procDispatchMessage       = user32.NewProc("DispatchMessageW")
 	procGetMessage            = user32.NewProc("GetMessageW")
+	procMapVirtualKey         = user32.NewProc("MapVirtualKeyW")
 	procPeekMessage           = user32.NewProc("PeekMessageW")
 	procSendInput             = user32.NewProc("SendInput")
 	procSetWindowsHookEx      = user32.NewProc("SetWindowsHookExW")
@@ -127,19 +133,48 @@ func keyboardHookProc(nCode uintptr, wParam uintptr, lParam uintptr) uintptr {
 func postPlatformKey(keyCode uint16, down bool, shift bool) {
 	_ = shift
 
+	scanCode := scanCodeForVirtualKey(keyCode)
 	flags := uint32(0)
 	if !down {
 		flags |= keyeventfKeyup
 	}
 
+	keyboard := keyboardInput{
+		WVk:     keyCode,
+		DwFlags: flags,
+	}
+	if scanCode != 0 {
+		keyboard.WVk = 0
+		keyboard.WScan = scanCode
+		keyboard.DwFlags |= keyeventfScancode
+		if isExtendedVirtualKey(keyCode) {
+			keyboard.DwFlags |= keyeventfExtendedKey
+		}
+	}
+
 	event := input{
 		Type: inputKeyboard,
-		Ki: keyboardInput{
-			WVk:     keyCode,
-			DwFlags: flags,
-		},
+		Ki:   keyboard,
 	}
 	procSendInput.Call(1, uintptr(unsafe.Pointer(&event)), unsafe.Sizeof(event))
+}
+
+func scanCodeForVirtualKey(keyCode uint16) uint16 {
+	scanCode, _, _ := procMapVirtualKey.Call(uintptr(keyCode), uintptr(mapvkVKToVSC))
+	return uint16(scanCode)
+}
+
+func isExtendedVirtualKey(keyCode uint16) bool {
+	switch keyCode {
+	case 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28:
+		return true
+	case 0x2D, 0x2E, 0x6F, 0x90, 0x91:
+		return true
+	case 0xA3, 0xA5:
+		return true
+	default:
+		return false
+	}
 }
 
 func platformLeftShiftKeyCode() uint16 {
@@ -147,5 +182,5 @@ func platformLeftShiftKeyCode() uint16 {
 }
 
 func defaultHotkeyKeyCode() int {
-	return vkOEM1
+	return vkOEM3
 }

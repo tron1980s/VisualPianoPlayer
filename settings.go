@@ -9,9 +9,10 @@ import (
 const settingsFileName = "settings.json"
 
 type UserSettings struct {
-	EnableSlotHotkeys  bool      `json:"enable_slot_hotkeys"`
-	ConsumeSlotHotkeys bool      `json:"consume_slot_hotkeys"`
-	SlotPaths          [9]string `json:"slot_paths"`
+	StartStopHotkeyCode int       `json:"start_stop_hotkey_code,omitempty"`
+	EnableSlotHotkeys   bool      `json:"enable_slot_hotkeys"`
+	ConsumeSlotHotkeys  bool      `json:"consume_slot_hotkeys"`
+	SlotPaths           [9]string `json:"slot_paths"`
 }
 
 func DefaultUserSettings() UserSettings {

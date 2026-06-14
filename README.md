@@ -24,7 +24,7 @@ By default, the app prefers `026-2004-Chopin - Etude Op-10 No-4 (SHYBAY).mid` wh
 
 On macOS, the app needs Accessibility/Input Monitoring permission because it listens for global hotkeys and posts keyboard events while Roblox is focused. If the hotkey does nothing, allow the terminal or the built binary in System Settings, then restart it.
 
-On Windows, the app uses a low-level keyboard hook for global hotkeys and `SendInput` for playback. If the `ö` hotkey does not toggle playback, open Advanced, click Detect beside Start/Stop Keycode, then press the key you want to use.
+On Windows, the app uses a low-level keyboard hook for global hotkeys and scan-code `SendInput` for playback. If the `ö` hotkey does not toggle playback, open Advanced, click Detect beside Start/Stop Keycode, then press the key you want to use.
 
 ## Useful Flags
 
@@ -44,4 +44,4 @@ The default playback speed is `1.20x`.
 
 The built-in map includes the requested `y`/`2` swap.
 
-The default macOS hotkey keycode is `41`, which is the physical `ö` key on a German Mac keyboard. The default Windows hotkey keycode is `186`, usually `VK_OEM_1`, the `ö` key on a German Windows layout. If your layout differs, run with `-hotkey-keycode`.
+The default macOS hotkey keycode is `41`, which is the physical `ö` key on a German Mac keyboard. The default Windows hotkey keycode is `192`, usually `VK_OEM_3` on layouts where `ö` reports as 192. If your layout differs, run with `-hotkey-keycode` or use Detect in the GUI.

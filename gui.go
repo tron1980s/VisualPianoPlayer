@@ -34,13 +34,17 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 	window := guiApp.NewWindow("Roblox MIDI Piano")
 	window.Resize(fyne.NewSize(820, 680))
 
-	state := &guiRuntime{cfg: initial}
 	settingsFileExists := UserSettingsFileExists()
 	settings := LoadUserSettings()
+	if settings.StartStopHotkeyCode > 0 {
+		initial.HotkeyCode = settings.StartStopHotkeyCode
+	}
 	if !settingsFileExists && !settings.HasSlotPaths() {
 		settings = FillEmptySlotsFromSongs(settings, initial.MIDIPath)
+		settings.StartStopHotkeyCode = initial.HotkeyCode
 		_ = SaveUserSettings(settings)
 	}
+	state := &guiRuntime{cfg: initial}
 	hotkeyEvents := make(chan guiHotkeyEvent, 8)
 
 	pathEntry := widget.NewEntry()
@@ -259,6 +263,11 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 			return false
 		}
 
+		if cfg.HotkeyCode > 0 && settings.StartStopHotkeyCode != cfg.HotkeyCode {
+			settings.StartStopHotkeyCode = cfg.HotkeyCode
+			_ = SaveUserSettings(settings)
+		}
+
 		state.mu.Lock()
 		if state.player != nil && state.player.IsPlaying() {
 			state.player.Stop()
@@ -388,6 +397,8 @@ func RunGUI(initial AppConfig, keyMap map[int]KeyStroke) {
 				hotkeyEntry.SetText(strconv.Itoa(keyCode))
 				detectHotkeyButton.Enable()
 				statusLabel.SetText(fmt.Sprintf("Detected keycode %d", keyCode))
+				settings.StartStopHotkeyCode = keyCode
+				_ = SaveUserSettings(settings)
 				if cfg, err := readConfig(); err == nil {
 					configureGlobalHotkeys(cfg)
 				}

@@ -2,6 +2,7 @@
 .gocache/
 
 # Local builds
+dist/
 roblox-midi-piano
 roblox-midi-piano.exe
 *.exe
